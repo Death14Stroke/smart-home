@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_view"
+            android:icon="@android:drawable/ic_menu_view"
+            android:iconTint="@color/colorPrimary"
+            android:title="View Devices" />
+        <item
+            android:id="@+id/nav_stats"
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:iconTint="@color/colorPrimary"
+            android:title="View Stats" />
+        <item
+            android:id="@+id/nav_monthly"
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:iconTint="@color/colorPrimary"
+            android:title="Monthly Analysis" />
+        <item
+            android:id="@+id/nav_help"
+            android:icon="@android:drawable/ic_menu_help"
+            android:iconTint="@color/colorPrimary"
+            android:title="Help" />
+    </group>
+</menu>

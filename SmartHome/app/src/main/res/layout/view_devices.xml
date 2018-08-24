@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:background="#96fce1"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="100"
+        android:layout_margin="1dp"
+        android:background="@drawable/border"
+        android:id="@+id/linearTemp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/temp_tv"
+            android:textSize="20sp"
+            android:textColor="#ffe100"
+            android:gravity="center"
+            android:layout_marginTop="5dp"
+            android:padding="20dp"
+            android:layout_weight="90"
+            android:text="Temperature"/>
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:id="@+id/tempReqBtn"
+            android:background="#ffe100"
+            android:src="@drawable/ic_refresh"/>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_margin="1dp"
+        android:id="@+id/linearPress"
+        android:weightSum="100"
+        android:layout_below="@id/linearTemp"
+        android:background="@drawable/border"
+        android:layout_height="wrap_content">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/press_tv"
+            android:textSize="20sp"
+            android:layout_marginTop="5dp"
+            android:textColor="#ffe100"
+            android:padding="20dp"
+            android:layout_weight="90"
+            android:gravity="center"
+            android:text="Pressure"/>
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:id="@+id/pressReqBtn"
+            android:background="#ffe100"
+            android:src="@drawable/ic_refresh"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="100"
+        android:layout_marginTop="5dp"
+        android:layout_below="@id/linearPress"
+        android:id="@+id/linear5">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="50"
+            android:text="All Off"
+            android:textStyle="bold"
+            android:id="@+id/all_off_button"
+            android:background="@android:drawable/button_onoff_indicator_off"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="50"
+            android:text="All On"
+            android:textStyle="bold"
+            android:id="@+id/all_on_button"
+            android:background="@android:drawable/button_onoff_indicator_on"/>
+    </LinearLayout>
+    <android.support.v7.widget.RecyclerView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:padding="10dp"
+        android:layout_marginBottom="5dp"
+        android:layout_below="@id/linear5"
+        android:scrollbars="vertical"
+        android:id="@+id/recycler_view">
+    </android.support.v7.widget.RecyclerView>
+
+    <ProgressBar
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:focusable="true"
+        android:layout_centerInParent="true"
+        android:id="@+id/progressBarView"
+        android:visibility="gone"
+        android:max="100"/>
+
+</RelativeLayout>
+
+
+
+
+

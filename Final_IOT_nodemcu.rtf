@@ -1,0 +1,862 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang16393{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\colortbl ;\red0\green0\blue255;}
+{\*\generator Riched20 10.0.16299}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang9 //\par
+// Copyright 2015 Google Inc.\par
+//\par
+// Licensed under the Apache License, Version 2.0 (the "License");\par
+// you may not use this file except in compliance with the License.\par
+// You may obtain a copy of the License at\par
+//\par
+//     {{\field{\*\fldinst{HYPERLINK http://www.apache.org/licenses/LICENSE-2.0 }}{\fldrslt{http://www.apache.org/licenses/LICENSE-2.0\ul0\cf0}}}}\f0\fs22\par
+//\par
+// Unless required by applicable law or agreed to in writing, software\par
+// distributed under the License is distributed on an "AS IS" BASIS,\par
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\par
+// See the License for the specific language governing permissions and\par
+// limitations under the License.\par
+//\par
+\par
+// FirebaseDemo_ESP8266 is a sample that demo the different functions\par
+// of the FirebaseArduino API.\par
+\par
+\par
+\par
+\par
+#include <ESP8266WiFi.h>\par
+#include <FirebaseArduino.h>\par
+#include <Adafruit_BMP085.h> \par
+#include <ESP8266WiFi.h>\par
+#include <WiFiUdp.h>\par
+#include<Wire.h>\par
+\par
+#include<assert.h>\par
+\par
+#include <SFE_MicroOLED.h>  // Include the SFE_MicroOLED library\par
+#define PIN_RESET 255  //\par
+#define DC_JUMPER 0  // I2C Addres: 0 - 0x3C, 1 - 0x3D\par
+ \par
+MicroOLED oled(PIN_RESET, DC_JUMPER); // Example I2C declaration\par
+\par
+unsigned int localPort = 2390;      // local port to listen for UDP packets\par
+\par
+\par
+\par
+unsigned long startTime[7];\par
+unsigned long stopTime[7]; \par
+char* units[] = \{"-1","units1","units2","units3","units4","units5","units6"\};\par
+\par
+\par
+\par
+IPAddress timeServerIP; // time.nist.gov NTP server address\par
+//const char* ntpServerName = "2.in.pool.ntp.org";\par
+const char* ntpServerName = "time.nist.gov";\par
+const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message\par
+\par
+byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets\par
+byte packetBuffer2[ NTP_PACKET_SIZE];\par
+// A UDP instance to let us send and receive packets over UDP\par
+WiFiUDP udp;\par
+\par
+\par
+\par
+\par
+\par
+Adafruit_BMP085 bmp; \par
+\par
+\par
+// Set these to run example.\par
+#define FIREBASE_HOST "home-automation-it478.firebaseio.com"\par
+#define FIREBASE_AUTH "GY9fkH3WiYkx1hHPYHTushZD7hmyZyCF7FOwER7L"\par
+//#define WIFI_SSID "DeaDshot"\par
+//#define WIFI_PASSWORD "1357924680"\par
+\par
+class Device\{\par
+\par
+  char *d_name,*purchaseDate;\par
+  int rating;\par
+  long date;\par
+\par
+public:\par
+  Device()\par
+  \{\par
+    \par
+  \}\par
+\par
+  Device(char *de , char *pd , int r , long d)\par
+  \{\par
+    d_name = de ;\par
+    purchaseDate = pd;\par
+    rating = r;\par
+    date = d;\par
+  \}\par
+\par
+\};\par
+\par
+\par
+FirebaseArduino FirebaseStream;\par
+\par
+int pin[] = \{-1,D0,D3,D4,D5,D6,D8\};\par
+void setup() \{\par
+\par
+  \par
+  \par
+  Serial.begin(9600);\par
+  \par
+  oled.clear(PAGE);\par
+  oled.begin();\par
+  oled.clear(ALL);  // Clear the display's memory (gets rid of artifacts)\par
+  oled.display();  \par
+\par
+  \par
+  char ssid[50];\par
+  char password[50];\par
+  password[0] = '\\0';\par
+  bool moveon = false;\par
+  \par
+  \par
+  //int numberOfNetworks = WiFi.scanNetworks();\par
+\par
+  \par
+  \par
+  int i;\par
+  String input;\par
+  String first;\par
+  String answer;\par
+  char ans[50];\par
+  ans[0] = '\\0';\par
+  \par
+\par
+  while(!moveon)\{\par
+  int numberOfNetworks = WiFi.scanNetworks();\par
+  delay(2000);\par
+  input = "";\par
+  first = "";\par
+  answer = "";\par
+  ans[0] = '\\0';\par
+\par
+  \par
+  for(i =0; i<numberOfNetworks; i++)\{\par
+\par
+    Serial.print(i);\par
+    Serial.print(" ---  ");\par
+      Serial.print("Network name: ");\par
+     // ssid = \par
+      Serial.println(WiFi.SSID(i));\par
+      Serial.print("Signal strength: ");\par
+      Serial.println(WiFi.RSSI(i));\par
+      Serial.println("-----------------------");\par
+      \par
+  \}\par
+  \par
+  \par
+  //Serial.println("Are you able to see the list of available networks , please enter yes or no");\par
+\par
+\par
+  Serial.println("Enter the number of the network you want to connect to");\par
+\par
+  int waitInput = 0;\par
+\par
+\par
+\par
+  \par
+  while(input.length()==0)\par
+  \{\par
+  if(Serial.available()>0)\par
+  \{\par
+    input = Serial.readString();\par
+    Serial.print("You entered   ");\par
+    Serial.println(input);\par
+\par
+    delay(1000);\par
+    \par
+    Serial.print("Enter y if you Would you like to connect to   ");\par
+    Serial.println(WiFi.SSID(input.toInt()));\par
+    Serial.println("Else enter n");\par
+    delay(1000);\par
+    while(ans[0]=='\\0')\par
+    \{\par
+      if(Serial.available()>0)\par
+      \{\par
+        answer = Serial.readString();\par
+        answer.toCharArray(ans,50);\par
+        if(ans[0]=='y' || ans[0]=='Y')\par
+        \{\par
+          moveon = true;\par
+        \}\par
+      \}\par
+    \}\par
+   \par
+    \par
+  \}\par
+\par
+  \par
+  else\par
+  \{\par
+    Serial.println("Waiting for input");\par
+    \par
+    delay(2000);\par
+    waitInput++;\par
+\par
+    if(waitInput==6)\par
+    \{\par
+      break;\par
+    \}\par
+\par
+    \par
+  \}\par
+  \}\par
+  \}\par
+\par
+  WiFi.SSID(input.toInt()).toCharArray(ssid,50);\par
+\par
+  Serial.print("Enter the password for ");\par
+  Serial.print(WiFi.SSID(input.toInt()));\par
+    \par
+  while(password[0] == '\\0')\par
+  \{\par
+    if(Serial.available()>0)\par
+    \{\par
+      first = Serial.readString();\par
+      first.toCharArray(password,50);\par
+      Serial.print("You entered   ");\par
+      Serial.println(password);\par
+\par
+    \par
+      WiFi.begin(ssid , password);\par
+      Serial.print("connecting");\par
+      int t = 0;\par
+      while (WiFi.status() != WL_CONNECTED) \{\par
+      Serial.print(".");\par
+      delay(500);\par
+      t++;\par
+      if(t==30)\par
+      \{\par
+        Serial.println("Wrong password");\par
+        password[0] =  '\\0';\par
+        break;\par
+      \}\par
+    \}\par
+\par
+      if(t<30)\par
+      \{\par
+        Serial.println();\par
+        Serial.println("connected: ");\par
+        //delay(2000);    \par
+  \par
+        oled.clear(PAGE);\par
+        oled.setFontType(0);\par
+        oled.setCursor(1,3);\par
+        oled.print("Connected to ");\par
+        oled.setCursor(1,12);\par
+        oled.print(WiFi.SSID(input.toInt()));\par
+        oled.display(); \par
+          \par
+      Serial.println(WiFi.localIP());\par
+      \}\par
+      \par
+      \par
+    \}\par
+    else\par
+    \{\par
+    Serial.println("waiting for password");\par
+    delay(1000);\par
+    \}\par
+  \}\par
+\par
+  pinMode(D0,OUTPUT);\par
+  pinMode(D3,OUTPUT);\par
+  pinMode(D4,OUTPUT);\par
+  pinMode(D5,OUTPUT);\par
+  pinMode(D6,OUTPUT);\par
+  pinMode(D8,OUTPUT);\par
+\par
+  digitalWrite(D0,LOW);\par
+  digitalWrite(D3,LOW);\par
+  digitalWrite(D4,LOW);\par
+  digitalWrite(D5,LOW);\par
+  digitalWrite(D6,LOW);\par
+  digitalWrite(D8,LOW);\par
+\par
+  \par
+  bmp.begin();\par
+  delay(1000);\par
+  udp.begin(localPort);\par
+\par
+  \par
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);\par
+  FirebaseStream.begin(FIREBASE_HOST, FIREBASE_AUTH);\par
+  FirebaseStream.stream("/devices");\par
+\par
+\par
+  \par
+  \par
+\par
+  if (!bmp.begin()) \par
+  \{\par
+    Serial.println("Could not find BMP180 or BMP085 sensor at 0x77");\par
+    while (1) \{\par
+      Serial.print(".");\par
+      \}\par
+  \}\par
+\}\par
+\par
+int n = 0;\par
+\par
+char *st[] = \{"/devices/device1","/devices/device2","/devices/device3","/devices/device4","/devices/device5" ,"/devices/device6" ,"/devices/device7" ,"/devices/device8"\};   \par
+\par
+int totalNotDetected = 0;\par
+int totalDetected = 0;\par
+int a;\par
+\par
+\par
+void loop() \{\par
+  \par
+  //FirebaseObject fb = Firebase.get("/devices");\par
+ // Serial.print(fb.getInt("rating"));\par
+\par
+ \par
+  Serial.println();\par
+\par
+  \par
+  \par
+\par
+  \par
+  int i;\par
+  delay(2000);\par
+  //i = 1;\par
+  for(i=0;i<8;i++)\par
+  \{\par
+\par
+  a = getPirValue();\par
+  if(a==0)\par
+  \{\par
+    totalNotDetected++;  \par
+\par
+    \par
+    if(totalNotDetected==10)\par
+    \{\par
+        \par
+      Serial.println("Written on databse alert");\par
+      //FirebaseObject ffb; //= Firebase.get("alert");\par
+\par
+      if(Firebase.getBool("alloff")==false)\par
+         Firebase.setBool("alert",true);\par
+       if (Firebase.failed()) \{\par
+      Serial.print("setting /number failed:");\par
+      Serial.println(Firebase.error());  \par
+      return;\par
+  \}\par
+    \par
+      totalNotDetected = 0;\par
+    \}\par
+    \par
+  \}\par
+\par
+  else\par
+    \{\par
+      totalDetected++;\par
+      \par
+      totalNotDetected = 0;\par
+    \}\par
+\par
+  \par
+  oled.clear(PAGE); \par
+  oled.setFontType(0); // set font type 0, please see declaration in SFE_MicroOLED.cpp\par
+  oled.setCursor(1, 3);\par
+  oled.print("Pressure = ");\par
+  oled.setCursor(1, 12);\par
+  oled.print(bmp.readPressure());\par
+  oled.print(" Pa");\par
+  \par
+  oled.setCursor(1, 21);\par
+  oled.print("Temp =");\par
+  oled.setCursor(1, 30);\par
+  oled.print(bmp.readTemperature());\par
+  oled.print(" *C ");\par
+  oled.display();  \par
+  delay(1000);\par
+  \par
+  //2nd page of readings\par
+  oled.clear(PAGE); \par
+  oled.setFontType(0); // set font type 0, please see declaration in SFE_MicroOLED.cpp\par
+  oled.setCursor(1, 3);\par
+  oled.print("Altitude = ");\par
+  oled.setCursor(1, 12);\par
+  oled.print(bmp.readAltitude());\par
+  oled.print(" m");\par
+  oled.setCursor(1, 21);\par
+  oled.print("Sea Level=");\par
+  oled.setCursor(1, 30);\par
+  oled.print(bmp.readSealevelPressure());\par
+  oled.print(" Pa");\par
+  oled.display();\par
+\par
+  delay(1000);    \par
+\par
+  oled.clear(PAGE);\par
+  oled.setFontType(0);\par
+  oled.setCursor(1,3);\par
+  oled.print("Updating results");\par
+  oled.display();\par
+\par
+\par
+a = getPirValue();\par
+  if(a==0)\par
+  \{\par
+    totalNotDetected++;  \par
+\par
+    if(totalNotDetected==10)\par
+    \{\par
+     // FirebaseObject ffb; //= Firebase.get("alert");\par
+       if(Firebase.getBool("alloff")==false)\par
+      Firebase.setBool("alert",true);\par
+      Serial.println("Written to database serial");\par
+        if (Firebase.failed()) \{\par
+      Serial.print("setting /number failed:");\par
+      Serial.println(Firebase.error());  \par
+      return;\par
+  \}\par
+ \par
+      totalNotDetected = 0;\par
+    \}\par
+    \par
+  \}\par
+\par
+  else\par
+    \{\par
+      totalDetected++;\par
+   \par
+      totalNotDetected = 0;\par
+    \}\par
+\par
+\par
+\par
+    \par
+     Serial.print("Checking for Device ");\par
+     Serial.println(i+1);\par
+\par
+     \par
+     char *st1 = st[i];\par
+\par
+\par
+\par
+     \par
+     \par
+     FirebaseObject fb = Firebase.get(st1);\par
+      \par
+\par
+     \par
+     delay(2000);\par
+      if(fb.getInt("rating")==-1)\par
+     \{\par
+      digitalWrite(pin[1+i],LOW);\par
+      Serial.print("No device connected in relay   ");\par
+        Serial.println(i+1);\par
+      \par
+        continue;\par
+     \}\par
+\par
+     else\par
+     \{\par
+        Serial.print("Name = ");\par
+        Serial.println(fb.getString("dname"));\par
+        Serial.print("Rating = ");\par
+        Serial.println(fb.getInt("rating"));\par
+        \par
+        Serial.print("Status = ");\par
+        bool isport = fb.getBool("status");\par
+        Serial.println(isport);\par
+        int port = fb.getInt("port");\par
+        \par
+        \par
+        if(isport)\par
+        \{\par
+          digitalWrite(pin[port],HIGH);\par
+        \}\par
+        else\par
+        \{\par
+          digitalWrite(pin[port],LOW);\par
+        \}\par
+     \}\par
+\par
+     if (FirebaseStream.failed()) \{\par
+    Serial.println("ERROR: streaming error");\par
+    Serial.println(FirebaseStream.error());\par
+  \}\par
+\par
+  \par
+  if (FirebaseStream.available()) \{\par
+    FirebaseObject event = FirebaseStream.readEvent();\par
+    String eventType = event.getString("type");\par
+    Serial.println(eventType);\par
+    Serial.print("event: ");\par
+    Serial.println(event.getString("event"));\par
+    Serial.print("path: ");\par
+    String ptr = event.getString("path");\par
+    Serial.println(ptr);\par
+    Serial.print("data: ");\par
+    bool b = event.getBool("data");\par
+    Serial.println(b);\par
+\par
+     char ch = ptr[7];\par
+     int fin = ch - '0';\par
+    /*\par
+    if(b==0)\par
+    \{\par
+      digitalWrite(pin[fin],LOW);\par
+    \}\par
+    */\par
+    String ptr2 = "status";\par
+    if(strstr(ptr.c_str(),ptr2.c_str()))\par
+    \{\par
+      if(b==1)\par
+      \{\par
+        digitalWrite(pin[fin],HIGH);\par
+        \par
+\par
+\par
+        WiFi.hostByName(ntpServerName, timeServerIP); \par
+        \par
+        sendNTPpacket(timeServerIP); // send an NTP packet to a time server\par
+        // wait to see if a reply is available\par
+        delay(1000);\par
+        \par
+        int cb = udp.parsePacket();\par
+        \par
+        \par
+        \par
+\par
+\par
+        \par
+         udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer\par
+\par
+       unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);\par
+      unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);\par
+       unsigned long secsSince1900 = highWord << 16 | lowWord;\par
+   \par
+      const unsigned long seventyYears = 2208988800UL;\par
+       unsigned long epoch = secsSince1900 - seventyYears;\par
+\par
+        Serial.print("epoch when the light is put on is ");\par
+    Serial.println(epoch);\par
+      Serial.print("The UTC time when the device is started is ");       // UTC is the time at Greenwich Meridian (GMT)\par
+\par
+      Serial.print("Starting epoch  ");\par
+      Serial.println(epoch);\par
+      Serial.print((((epoch  % 86400L) / 3600))); // print the hour (86400 equals secs per day)\par
+      Serial.print(':');\par
+     if ( ((epoch % 3600) / 60) < 10 ) \{\par
+      //// In the first 10 minutes of each hour, we'll want a leading '0'\par
+      Serial.print('0');\par
+    \}\par
+    Serial.print((epoch  % 3600) / 60); // print the minute (3600 equals secs per minute)\par
+    Serial.print(':');\par
+    if ( (epoch % 60) < 10 ) \{\par
+      // In the first 10 seconds of each minute, we'll want a leading '0'\par
+      Serial.print('0');\par
+    \}\par
+    Serial.println(epoch % 60); // print the second\par
+      startTime[fin] = epoch;\par
+\par
+\par
+\par
+    \par
+  \par
+  a = getPirValue();\par
+  if(a==0)\par
+  \{\par
+    totalNotDetected++;  \par
+\par
+    if(totalNotDetected==10)\par
+    \{\par
+      \par
+     // FirebaseObject ffb; //= Firebase.get("alert");\par
+      if(Firebase.getBool("alloff")==false)\par
+      Firebase.setBool("alert",true);\par
+      Serial.println("Written to database alert");\par
+        if (Firebase.failed()) \{\par
+      Serial.print("setting /number failed:");\par
+      Serial.println(Firebase.error());  \par
+      return;\par
+  \}\par
+  \par
+      totalNotDetected = 0;\par
+    \}\par
+    \par
+  \}\par
+\par
+  else\par
+    \{\par
+      totalDetected++;\par
+      \par
+      totalNotDetected = 0;\par
+    \}\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+      \par
+\par
+  \}\par
+  // wait ten seconds before asking for the time again\par
+  \par
+  \par
+\par
+\par
+  \par
+      else\par
+      \{\par
+        digitalWrite(pin[fin],LOW);\par
+\par
+         WiFi.hostByName(ntpServerName, timeServerIP); \par
+        \par
+        sendNTPpacket(timeServerIP); // send an NTP packet to a time server\par
+        // wait to see if a reply is available\par
+        delay(1000);\par
+        \par
+        int cb = udp.parsePacket();\par
+        \par
+          \par
+            udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer\par
+\par
+    unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);\par
+    unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);\par
+    unsigned long secsSince1900 = highWord << 16 | lowWord;\par
+    const unsigned long seventyYears = 2208988800UL;\par
+    unsigned long epoch = secsSince1900 - seventyYears;\par
+\par
+    stopTime[fin] = epoch;\par
+    Serial.print("epoch when the light is off is ");\par
+    Serial.println(epoch);\par
+\par
+    Serial.print("Just to check whether the earlier start[fin] and end[fin] are different ");\par
+    Serial.print("start[fin] ");\par
+    Serial.println(startTime[fin]);\par
+    Serial.print("stop[fin] ");\par
+    Serial.println(stopTime[fin]);\par
+    \par
+    Serial.print("The UTC time when the device is put off is ");  \par
+    \par
+    \par
+    // UTC is the time at Greenwich Meridian (GMT)\par
+    \par
+      Serial.print("Epoch  ");\par
+\par
+    Serial.println(epoch);\par
+\par
+    \par
+     Serial.print((((epoch  % 86400L) / 3600))); // print the hour (86400 equals secs per day)\par
+      Serial.print(':');\par
+     if ( ((epoch % 3600) / 60) < 10 ) \{\par
+      //// In the first 10 minutes of each hour, we'll want a leading '0'\par
+      Serial.print('0');\par
+     \}\par
+      Serial.print((epoch  % 3600) / 60); // print the minute (3600 equals secs per minute)\par
+    Serial.print(':');\par
+    if ( (epoch % 60) < 10 ) \{\par
+      // In the first 10 seconds of each minute, we'll want a leading '0'\par
+      Serial.print('0');\par
+    \}\par
+    Serial.println(epoch % 60); // print the second\par
+    \par
+     \par
+     unsigned long l1 = ((epoch  % 86400L) / 3600);\par
+     \par
+      l1 = l1 * 3600;\par
+      epoch = epoch - l1;\par
+      \par
+      \par
+      \par
+    unsigned long l2 = (epoch  % 3600) / 60;\par
+    l2 = l2*60;\par
+    epoch = epoch - l2;\par
+\par
+\par
+    unsigned long l3 = (epoch%60);\par
+    epoch = epoch - l3;\par
+    \par
+   \par
+  // wait ten seconds before asking for the time again\par
+  \par
+  delay(2000);\par
+ \par
+  unsigned long diff = stopTime[fin] - startTime[fin];\par
+      const int n = snprintf(NULL, 0, "%lu", epoch);\par
+      assert(n > 0);\par
+      char buf[n+1];\par
+      int c = snprintf(buf, n+1, "%lu", epoch);\par
+      assert(buf[n] == '\\0');\par
+      assert(c == n);\par
+\par
+      \par
+  startTime[fin] = 0;\par
+  stopTime[fin] = 0;\par
+  char *char1 = "logs";\par
+  char *char2 = "/";\par
+  char *char3 = buf;\par
+\par
+\par
+   char *result = (char*)malloc(strlen(char1)+strlen(char2)+strlen(char3)+1);//+1 for the null-terminator\par
+    //in real code you would check for errors in malloc here\par
+    strcpy(result, char1);\par
+    strcat(result, char2);\par
+    strcat(result ,char3);\par
+\par
+    \par
+  Serial.print("result   ");\par
+  Serial.println(result);\par
+  \par
+  FirebaseObject ff1 = Firebase.get(result);\par
+  float ft = ff1.getFloat(units[fin]);\par
+\par
+  Serial.print("Existing units in the port   ");\par
+  Serial.println(ff1.getFloat(units[fin])); \par
+  //converting the difference into hours\par
+  float hours = (float)diff/3600.0;\par
+  ft = ft + hours;\par
+  Serial.print("diff hours  ");\par
+  Serial.println(hours);\par
+  char *result2 = (char*)malloc(strlen(result) +strlen(char2)+ strlen(units[fin]) + 1);\par
+\par
+\par
+ \par
+  strcpy(result2, result);\par
+  strcat(result2, char2);\par
+  strcat(result2, (char*)units[fin]);\par
+\par
+Serial.print("result2  ");\par
+Serial.println(result2);\par
+  //FirebaseObject ff2 = Firebase.get(result2);\par
+ // ff1.setFloat(result2,ft);\par
+  \par
+  Firebase.setFloat(result2,ft);\par
+  \par
+  \par
+\}\par
+\par
+    \}    \par
+        \par
+      \}\par
+\par
+\par
+\par
+      a = getPirValue();\par
+  if(a==0)\par
+  \{\par
+    totalNotDetected++;  \par
+\par
+    if(totalNotDetected == 5)\par
+    \{\par
+      \par
+      //FirebaseObject ffb; //= Firebase.get("alert");\par
+       if(Firebase.getBool("alloff")==false)\par
+      Firebase.setBool("alert",true);\par
+      Serial.println("Written to database alert");\par
+        if (Firebase.failed()) \{\par
+      Serial.print("setting /number failed:");\par
+      Serial.println(Firebase.error());  \par
+      return;\par
+  \}\par
+  \par
+      totalNotDetected = 0;\par
+      totalDetected = 0;\par
+    \}\par
+    \par
+  \}\par
+\par
+  else\par
+    \{\par
+      totalDetected++;\par
+      totalNotDetected = 0;\par
+    \}\par
+    \par
+\par
+\par
+\par
+        Serial.print("TEMP180 = ");\par
+  float f = bmp.readTemperature();\par
+  Serial.println(f); // Read temperature in celsius\par
+\par
+  Serial.println("Writing to the firebase");\par
+  \par
+  Firebase.setFloat("temperature",f );\par
+  // handle error\par
+  if (Firebase.failed()) \{\par
+      Serial.print("setting /number failed:");\par
+      Serial.println(Firebase.error());  \par
+      return;\par
+  \}\par
+  delay(1000);\par
+\par
+  Serial.print("Pressure = ");\par
+  float f2 = bmp.readPressure();\par
+  Serial.println(f2); \par
+\par
+\par
+  \par
+  // update value\par
+  Firebase.setFloat("Pressure",f2);\par
+  // handle error\par
+  if (Firebase.failed()) \{\par
+      Serial.print("setting /number failed:");\par
+      Serial.println(Firebase.error());  \par
+      return;\par
+  \}\par
+  delay(1000);\par
+\par
+\par
+\par
+      \par
+      \par
+    \}\par
+\}\par
+\par
+\par
+\par
+int getPirValue()\par
+\{\par
+  //int pirValue = digialRead(D7);\par
+  Serial.println(totalNotDetected);\par
+  if(digitalRead(D7)==LOW)\par
+  \{\par
+    Serial.println("----Not Detected----");\par
+    return 0; \par
+  \}\par
+\par
+    Serial.println("---Detected---");\par
+  return 1;\par
+\}\par
+\par
+\par
+\par
+\par
+\par
+unsigned long sendNTPpacket(IPAddress& address)\par
+\{\par
+  Serial.println("sending NTP packet...");\par
+  // set all bytes in the buffer to 0\par
+  memset(packetBuffer, 0, NTP_PACKET_SIZE);\par
+  // Initialize values needed to form NTP request\par
+  // (see URL above for details on the packets)\par
+  packetBuffer[0] = 0b11100011;   // LI, Version, Mode\par
+  packetBuffer[1] = 0;     // Stratum, or type of clock\par
+  packetBuffer[2] = 6;     // Polling Interval\par
+  packetBuffer[3] = 0xEC;  // Peer Clock Precision\par
+  // 8 bytes of zero for Root Delay & Root Dispersion\par
+  packetBuffer[12]  = 49;\par
+  packetBuffer[13]  = 0x4E;\par
+  packetBuffer[14]  = 49;\par
+  packetBuffer[15]  = 52;\par
+\par
+  // all NTP fields have been given values, now\par
+  // you can send a packet requesting a timestamp:\par
+  udp.beginPacket(address, 123); //NTP requests are to port 123\par
+  udp.write(packetBuffer, NTP_PACKET_SIZE);\par
+  udp.endPacket();\par
+\} \par
+}
+ 
